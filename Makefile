@@ -1,6 +1,6 @@
 NAME = main
 
-CC = gcc
+CC = g++
 FLAGS = -Wall -Werror -O3
 LIBRARIES = -lm
 INCLUDES = -I.
