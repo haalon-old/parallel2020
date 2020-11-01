@@ -1,8 +1,10 @@
 NAME = main
 
 CC = g++
-FLAGS = -Wall -Werror -O3
-LIBRARIES = -lm
+
+# note that '-fopenmp' is a flag and not a library
+FLAGS = -Wall -Werror -O3 -fopenmp
+LIBRARIES = -lm -lpthread
 INCLUDES = -I.
 
 HEADERS = analytic.h
