@@ -1,9 +1,15 @@
 NAME = main
 
 CC = g++
+polus: CC = -mpixlC
+bg: CC = mpixlcxx
 
 # note that '-fopenmp' is a flag and not a library
-FLAGS = -Wall -Werror -O3 -fopenmp
+FLAGS = -Wall -O0 -fopenmp -g
+polus: FLAGS = -qsmp=omp
+bg: FLAGS = -qsmp=omp
+
+
 LIBRARIES = -lm -lpthread
 INCLUDES = -I.
 
@@ -21,6 +27,8 @@ RESET = \033[0m
 .PHONY: all clean fclean re
 
 all: $(NAME)
+polus: $(NAME)
+bg: $(NAME)
 
 
 $(NAME): $(OBJECTS_DIRECTORY) $(OBJECTS)
