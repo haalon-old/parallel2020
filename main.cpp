@@ -6,10 +6,10 @@
 #define L_X 1.0
 #define L_Y 1.0
 #define L_Z 1.0
-#define T 0.5
+#define T 0.2
 
 #define N 128
-#define K 20
+#define K 128
 
 #define PERIOD_X false
 #define PERIOD_Y false
@@ -25,6 +25,8 @@ const double C_X = TAU / H_X;
 const double C_Y = TAU / H_Y;
 const double C_Z = TAU / H_Z;
 
+static int t_global=0;
+
 //assumes that layer is double[N+1][N+1][N+1]
 double& get3d(double* layer, int i, int j, int k)
 {
@@ -38,22 +40,24 @@ double delta_h(int i, int j, int k, double* curr)
 {
     double d_x, d_y, d_z;
     if(PERIOD_X && (i==0 || i==N))
-        d_x = get3d(curr, 1, j, k) - 2*get3d(curr, 0, j, k) + get3d(curr, N -1, j, k);
+        d_x = (get3d(curr, 1, j, k) - get3d(curr, 0, j, k)) * C_X + (get3d(curr, N -1, j, k) - get3d(curr, 0, j, k)) * C_X;
     else
-        d_x = get3d(curr, i-1, j, k) - 2*get3d(curr, i, j, k) + get3d(curr, i+1, j, k);
+        d_x = (get3d(curr, i+1, j, k) - get3d(curr, i, j, k)) * C_X + (get3d(curr, i-1, j, k) - get3d(curr, i, j, k)) * C_X;
 
     if(PERIOD_Y && (j==0 || j==N))
-        d_y = get3d(curr, i, 1, k) - 2*get3d(curr, i, 0, k) + get3d(curr, i, N-1, k);
+        d_y = (get3d(curr, i, 1, k) - get3d(curr, i, 0, k)) * C_Y + (get3d(curr, i, N-1, k) - get3d(curr, i, 0, k)) * C_Y;
     else
-        d_y = get3d(curr, i, j-1, k) - 2*get3d(curr, i, j, k) + get3d(curr, i, j+1, k);
+        d_y = (get3d(curr, i, j-1, k) - get3d(curr, i, j, k)) * C_Y + (get3d(curr, i, j+1, k) - get3d(curr, i, j, k)) * C_Y;
 
     if(PERIOD_Z && (k==0 || k==N))
-        d_z = get3d(curr, i, j, 1) - 2*get3d(curr, i, j, 0) + get3d(curr, i, j, N-1);
+        d_z = (get3d(curr, i, j, 1) - get3d(curr, i, j, 0)) * C_Z + (get3d(curr, i, j, N-1) - get3d(curr, i, j, 0)) * C_Z;
     else
-        d_z = get3d(curr, i, j, k-1) - 2*get3d(curr, i, j, k) + get3d(curr, i, j, k+1);
+        d_z = (get3d(curr, i, j, k-1) - get3d(curr, i, j, k)) * C_Z + (get3d(curr, i, j, k+1) - get3d(curr, i, j, k)) * C_Z;
 
-    return d_x*C_X*C_X + d_y*C_Y*C_Y*0 + d_z*C_Z*C_Z*0;
+    return d_x*C_X + d_y*C_Y + d_z*C_Z;
 }
+
+
 
 double approx_first(int i, int j, int k, double* zeroth)
 {
@@ -82,10 +86,34 @@ double approx_next(int i, int j, int k, double* prev, double* curr)
     if(!PERIOD_Z && (k==0 || k==N))
         return 0;
 
-    if(i ==  N / 2 && j == N / 2 && k == N / 4)
-        printf("%9.6f  %9.6f ", get3d(curr, i, j, k) , delta_h(i,j,k,curr));
+    // if(t_global >= 10 && i==65 && j==11 && k==24)
+    // {
+    //     double next = delta_h(i,j,k,curr) + 2*get3d(curr, i, j, k) - get3d(prev, i, j, k);
+    //     double d_x = (get3d(curr, i+1, j, k) - get3d(curr, i, j, k)) * C_X + (get3d(curr, i-1, j, k) - get3d(curr, i, j, k)) * C_X;
+    //     double d_y = (get3d(curr, i, j-1, k) - get3d(curr, i, j, k)) * C_Y + (get3d(curr, i, j+1, k) - get3d(curr, i, j, k)) * C_Y;
+    //     double d_z = (get3d(curr, i, j, k-1) - get3d(curr, i, j, k)) * C_Z + (get3d(curr, i, j, k+1) - get3d(curr, i, j, k)) * C_Z;
+    //     printf("\n\n%d %d %d (%d)\n",i, j, k, t_global);
+    //     printf("prev real (appr) value: %.17f (%.17f)\n", u_analytical(L_X,L_Y,L_Z, H_X*i, H_Y*j, H_Z*k, t_global*TAU - TAU - TAU), get3d(prev, i, j, k));
+    //     printf("curr real (appr) value: %.17f (%.17f)\n", u_analytical(L_X,L_Y,L_Z, H_X*i, H_Y*j, H_Z*k, t_global*TAU - TAU), get3d(curr, i, j, k));
+    //     printf("next real (appr) value: %.17f (%.17f)\n", u_analytical(L_X,L_Y,L_Z, H_X*i, H_Y*j, H_Z*k, t_global*TAU), next);        
+    //     printf("%s: %.17f\n", "xyz", get3d(curr, i, j, k));
+    //     printf("%s: %.17f\n", "x+1", get3d(curr, i+1, j, k));
+    //     printf("%s: %.17f\n", "x-1", get3d(curr, i-1, j, k));
+    //     printf("%s: %.17f\n", "y+1", get3d(curr, i, j+1, k));
+    //     printf("%s: %.17f\n", "y-1", get3d(curr, i, j-1, k));
+    //     printf("%s: %.17f\n", "z+1", get3d(curr, i, j, k+1));
+    //     printf("%s: %.17f\n", "z-1", get3d(curr, i, j, k-1));
+    //     printf("%s: %.17f\n", "z-1", get3d(curr, i, j, k-1));
+    //     printf("dx %.17f\n", d_x);
+    //     printf("dy %.17f\n", d_y);
+    //     printf("dz %.17f\n", d_z);
+    //     printf("dlt: %.17f\n", delta_h(i,j,k,curr));
 
-    return delta_h(i,j,k,curr) + 2*get3d(curr, i, j, k) - get3d(prev, i, j, k);
+    //     // if(delta_h(i,j,k,curr) > 8)
+    //     //     abort();
+    // }
+
+    return get3d(curr, i, j, k) + (delta_h(i,j,k,curr) + get3d(curr, i, j, k) - get3d(prev, i, j, k));
 }
 
 void init_zeroth(double* zeroth)
@@ -103,7 +131,6 @@ void init_first(double* zeroth, double* first)
     for(int i = 0; i <= N; ++i)
         for (int j = 0; j <= N; ++j)
             for (int k = 0; k <= N; ++k)
-                // get3d(first, i, j, k) = u_analytical(L_X, L_Y, L_Z, H_X*i, H_Y*j, H_Z*k, TAU);
                 get3d(first, i, j, k) = approx_first(i, j, k, zeroth);
 }
 
@@ -169,15 +196,15 @@ void loop()
 
     printf("N=%d K=%d H=%.6f TAU=%.6f\n", N, K, H_X, TAU);
     printf("C_X=%.6f C_Y=%.6f C_Z=%.6f\n", C_X, C_Y, C_Z);
-    printf("Error #%3d: %8.4f\n", 0, get_error(prev,0));
-    printf("Error #%3d: %8.4f\n", 1, get_error(curr,1));
+    printf("Error #%3d: %.17f\n", 0, get_error(prev,0));
+    printf("Error #%3d: %.17f\n", 1, get_error(curr,1));
 
 
     for(int t=2; t<K; t++)
     {
-        printf("%9.6f ", u_analytical(L_X,L_Y,L_Z, H_X*(N/2), H_Y*(N/2), H_Z*(N/4), t*TAU));
+        t_global = t;
         calc_next(prev, curr, next);
-        printf("Error #%3d: %8.4f\n", t, get_error(curr,t));
+        printf("Error #%3d: %.17f\n", t, get_error(next,t));
 
         double * temp = prev;
         prev = curr;
@@ -187,7 +214,7 @@ void loop()
 
     calc_next(prev, curr, next);
     // print_layer(next, K);
-    printf("Error #%3d: %8.4f\n", K, get_error(curr,K));
+    printf("Error #%3d: %.17f\n", K, get_error(next,K));
 
     delete[] prev;
     delete[] curr;
