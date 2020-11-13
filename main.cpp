@@ -25,6 +25,38 @@ const double C_X = TAU / H_X;
 const double C_Y = TAU / H_Y;
 const double C_Z = TAU / H_Z;
 
+#define BX 1
+#define BY 5
+#define BZ 3
+
+struct Range {
+    int sx, ex;
+    int sy, ey;
+    int sz, ez;
+};
+
+Range getRange(int n) {
+    Range r;
+    int k = n % BZ;
+    int j = n / BZ % BY;
+    int i = n / BZ / BY;
+    printf("%d: %d %d %d\n", n, i, j ,k);
+    r.sx = (int) round(1.0*N/BX*i);
+    r.ex = (int) round(1.0*N/BX*(i+1));
+    
+    r.sy = (int) round(1.0*N/BY*j);
+    r.ey = (int) round(1.0*N/BY*(j+1));
+    
+    r.sz = (int) round(1.0*N/BZ*k);
+    r.ez = (int) round(1.0*N/BZ*(k+1));
+    
+    printf("x from %d to %d\n", r.sx, r.ex);
+    printf("y from %d to %d\n", r.sy, r.ey);
+    printf("z from %d to %d\n", r.sz, r.ez);
+    printf("\n");
+    return r;
+}
+
 static int t_global=0;
 
 //assumes that layer is double[N+1][N+1][N+1]
