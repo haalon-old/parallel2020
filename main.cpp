@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <omp.h>
-#include "analytic.h"
+#include "problem.h"
 
 #define L_X 1.0
 #define L_Y 1.0
@@ -10,10 +10,6 @@
 
 #define N 128
 #define K 128
-
-#define PERIOD_X false
-#define PERIOD_Y false
-#define PERIOD_Z true
 
 const double H_X = L_X / N;
 const double H_Y = L_Y / N;
@@ -26,231 +22,277 @@ const double C_Y = TAU / H_Y;
 const double C_Z = TAU / H_Z;
 
 #define BX 1
-#define BY 5
-#define BZ 3
+#define BY 1
+#define BZ 1
 
-struct Range {
-    int sx, ex;
-    int sy, ey;
-    int sz, ez;
-};
-
-Range getRange(int n) {
-    Range r;
-    int k = n % BZ;
-    int j = n / BZ % BY;
-    int i = n / BZ / BY;
-    printf("%d: %d %d %d\n", n, i, j ,k);
-    r.sx = (int) round(1.0*N/BX*i);
-    r.ex = (int) round(1.0*N/BX*(i+1));
-    
-    r.sy = (int) round(1.0*N/BY*j);
-    r.ey = (int) round(1.0*N/BY*(j+1));
-    
-    r.sz = (int) round(1.0*N/BZ*k);
-    r.ez = (int) round(1.0*N/BZ*(k+1));
-    
-    printf("x from %d to %d\n", r.sx, r.ex);
-    printf("y from %d to %d\n", r.sy, r.ey);
-    printf("z from %d to %d\n", r.sz, r.ez);
-    printf("\n");
-    return r;
-}
-
-static int t_global=0;
-
-//assumes that layer is double[N+1][N+1][N+1]
-double& get3d(double* layer, int i, int j, int k)
-{
-    return layer[(N+1)*(N+1)*i + (N+1)*j + k];
-}
-
-
-// Laplas operator approximation 
-// INCLUDES TAU MULTIPLICATION!
-double delta_h(int i, int j, int k, double* curr)
-{
-    double d_x, d_y, d_z;
-    if(PERIOD_X && (i==0 || i==N))
-        d_x = (get3d(curr, 1, j, k) - get3d(curr, 0, j, k)) * C_X + (get3d(curr, N -1, j, k) - get3d(curr, 0, j, k)) * C_X;
-    else
-        d_x = (get3d(curr, i+1, j, k) - get3d(curr, i, j, k)) * C_X + (get3d(curr, i-1, j, k) - get3d(curr, i, j, k)) * C_X;
-
-    if(PERIOD_Y && (j==0 || j==N))
-        d_y = (get3d(curr, i, 1, k) - get3d(curr, i, 0, k)) * C_Y + (get3d(curr, i, N-1, k) - get3d(curr, i, 0, k)) * C_Y;
-    else
-        d_y = (get3d(curr, i, j-1, k) - get3d(curr, i, j, k)) * C_Y + (get3d(curr, i, j+1, k) - get3d(curr, i, j, k)) * C_Y;
-
-    if(PERIOD_Z && (k==0 || k==N))
-        d_z = (get3d(curr, i, j, 1) - get3d(curr, i, j, 0)) * C_Z + (get3d(curr, i, j, N-1) - get3d(curr, i, j, 0)) * C_Z;
-    else
-        d_z = (get3d(curr, i, j, k-1) - get3d(curr, i, j, k)) * C_Z + (get3d(curr, i, j, k+1) - get3d(curr, i, j, k)) * C_Z;
-
-    return d_x*C_X + d_y*C_Y + d_z*C_Z;
-}
-
-
-
-double approx_first(int i, int j, int k, double* zeroth)
-{
-
+char onConstEdge(int i, int j, int k) {
     if(!PERIOD_X && (i==0 || i==N))
-        return 0;
+        return 1;
 
     if(!PERIOD_Y && (j==0 || j==N))
-        return 0;
+        return 1;
 
     if(!PERIOD_Z && (k==0 || k==N))
-        return 0;
+        return 1;
 
-
-    return get3d(zeroth, i, j, k) + delta_h(i,j,k,zeroth)/2;
+    return 0;
 }
 
-double approx_next(int i, int j, int k, double* prev, double* curr)
-{
-    if(!PERIOD_X && (i==0 || i==N))
-        return 0;
-
-    if(!PERIOD_Y && (j==0 || j==N))
-        return 0;
-
-    if(!PERIOD_Z && (k==0 || k==N))
-        return 0;
-
-    // if(t_global >= 10 && i==65 && j==11 && k==24)
-    // {
-    //     double next = delta_h(i,j,k,curr) + 2*get3d(curr, i, j, k) - get3d(prev, i, j, k);
-    //     double d_x = (get3d(curr, i+1, j, k) - get3d(curr, i, j, k)) * C_X + (get3d(curr, i-1, j, k) - get3d(curr, i, j, k)) * C_X;
-    //     double d_y = (get3d(curr, i, j-1, k) - get3d(curr, i, j, k)) * C_Y + (get3d(curr, i, j+1, k) - get3d(curr, i, j, k)) * C_Y;
-    //     double d_z = (get3d(curr, i, j, k-1) - get3d(curr, i, j, k)) * C_Z + (get3d(curr, i, j, k+1) - get3d(curr, i, j, k)) * C_Z;
-    //     printf("\n\n%d %d %d (%d)\n",i, j, k, t_global);
-    //     printf("prev real (appr) value: %.17f (%.17f)\n", u_analytical(L_X,L_Y,L_Z, H_X*i, H_Y*j, H_Z*k, t_global*TAU - TAU - TAU), get3d(prev, i, j, k));
-    //     printf("curr real (appr) value: %.17f (%.17f)\n", u_analytical(L_X,L_Y,L_Z, H_X*i, H_Y*j, H_Z*k, t_global*TAU - TAU), get3d(curr, i, j, k));
-    //     printf("next real (appr) value: %.17f (%.17f)\n", u_analytical(L_X,L_Y,L_Z, H_X*i, H_Y*j, H_Z*k, t_global*TAU), next);        
-    //     printf("%s: %.17f\n", "xyz", get3d(curr, i, j, k));
-    //     printf("%s: %.17f\n", "x+1", get3d(curr, i+1, j, k));
-    //     printf("%s: %.17f\n", "x-1", get3d(curr, i-1, j, k));
-    //     printf("%s: %.17f\n", "y+1", get3d(curr, i, j+1, k));
-    //     printf("%s: %.17f\n", "y-1", get3d(curr, i, j-1, k));
-    //     printf("%s: %.17f\n", "z+1", get3d(curr, i, j, k+1));
-    //     printf("%s: %.17f\n", "z-1", get3d(curr, i, j, k-1));
-    //     printf("%s: %.17f\n", "z-1", get3d(curr, i, j, k-1));
-    //     printf("dx %.17f\n", d_x);
-    //     printf("dy %.17f\n", d_y);
-    //     printf("dz %.17f\n", d_z);
-    //     printf("dlt: %.17f\n", delta_h(i,j,k,curr));
-
-    //     // if(delta_h(i,j,k,curr) > 8)
-    //     //     abort();
-    // }
-
-    return get3d(curr, i, j, k) + (delta_h(i,j,k,curr) + get3d(curr, i, j, k) - get3d(prev, i, j, k));
+int mod(int i, int n) {
+    return (i % n) + (n * (i < 0));
 }
 
-void init_zeroth(double* zeroth)
-{
-    #pragma omp parallel for
-    for(int i = 0; i <= N; ++i)
-        for (int j = 0; j <= N; ++j)
-            for (int k = 0; k <= N; ++k)
-                get3d(zeroth, i, j, k) = phi(L_X, L_Y, L_Z, H_X*i, H_Y*j, H_Z*k);
-}
+struct Block {
+    int t = 0;
 
-void init_first(double* zeroth, double* first)
-{
-    #pragma omp parallel for
-    for(int i = 0; i <= N; ++i)
-        for (int j = 0; j <= N; ++j)
-            for (int k = 0; k <= N; ++k)
-                get3d(first, i, j, k) = approx_first(i, j, k, zeroth);
-}
+    double * prev;
+    double * curr;
+    double * next;
 
-void calc_next(double* prev, double* curr, double* next)
-{
-    #pragma omp parallel for
-    for(int i = 0; i <= N; ++i)
-        for (int j = 0; j <= N; ++j)
-            for (int k = 0; k <= N; ++k)
-                get3d(next, i, j, k) = approx_next(i, j, k, prev, curr);   
-}
+    double * edge_xp;
+    double * edge_xm;
+    double * edge_yp;
+    double * edge_ym;
+    double * edge_zp;
+    double * edge_zm;
 
+    int sx, ex, nx;
+    int sy, ey, ny;
+    int sz, ez, nz;
 
-double get_error(double* layer, int t)
-{
-    double max_err=0, temp;
-    int mi=0,mj=0,mk=0;
-    for(int i = 0; i <= N; ++i)
-        for (int j = 0; j <= N; ++j)
-            for (int k = 0; k <= N; ++k)
-            {
-                temp = abs(u_analytical(L_X,L_Y,L_Z, H_X*i, H_Y*j, H_Z*k, t*TAU) - get3d(layer, i, j, k));
-                if(temp > max_err)
-                {
-                    max_err = temp;
-                    mi=i;
-                    mj=j;
-                    mk=k;
-                }
-            }
+    int px, mx;
+    int py, my;
+    int pz, mz;
 
-    printf("%d %d %d | ", mi, mj, mk);
-    return max_err;
-}
+    Block(int rank) {
+        int k = rank % BZ;
+        int j = rank / BZ % BY;
+        int i = rank / BZ / BY;
 
-void print_layer(double* layer, int t)
-{
-    for(int i = 0; i <= N; ++i)
-    {
-        for (int j = 0; j <= N; ++j)
-        {
-            for (int k = 0; k <= N; ++k)
-                printf("%7.3f", get3d(layer, i, j, k));
-            printf("\n");
-            printf("\033[1;30m");
-            for (int k = 0; k <= N; ++k)
-                printf("%7.3f", u_analytical(L_X,L_Y,L_Z, H_X*i, H_Y*j, H_Z*k, t*TAU));
-            printf(" ***\n");
-            printf("\033[0m");
-        }
-        printf("\n\n");
+        sx = (int) round(1.0*N/BX*i);
+        ex = (int) round(1.0*N/BX*(i+1));
+        nx = ex - sx + 1;
+        
+        sy = (int) round(1.0*N/BY*j);
+        ey = (int) round(1.0*N/BY*(j+1));
+        ny = ey - sy + 1;
+        
+        sz = (int) round(1.0*N/BZ*k);
+        ez = (int) round(1.0*N/BZ*(k+1));
+        nz = ez - sz + 1;
+
+        // ranks of adjacent blocks
+        pz = mod(k+1, BZ) + BZ*j + BZ*BY*i;
+        mz = mod(k-1, BZ) + BZ*j + BZ*BY*i;
+
+        py = k + BZ*mod(j+1, BY) + BZ*BY*i;
+        my = k + BZ*mod(j-1, BY) + BZ*BY*i;
+
+        px = k + BZ*j + BZ*BY*mod(i+1, BX);
+        mx = k + BZ*j + BZ*BY*mod(i-1, BX);
+
+        prev = new double[nx*ny*nz];
+        curr = new double[nx*ny*nz];
+        next = new double[nx*ny*nz];
+
+        edge_xm = new double[ny*nz];
+        edge_xp = new double[ny*nz];
+
+        edge_ym = new double[nx*nz];
+        edge_yp = new double[nx*nz];
+
+        edge_zm = new double[ny*nx];
+        edge_zp = new double[ny*nx];
+        printf("sx %d, ex %d\n", sx, ex);
+        printf("nx %d, ny %d nz %d\n", nx, ny, nz);
     }
-}
 
-void loop()
-{
-    double * prev = new double[(N+1)*(N+1)*(N+1)];
-    double * curr = new double[(N+1)*(N+1)*(N+1)];
-    double * next = new double[(N+1)*(N+1)*(N+1)];
+    ~Block() {
+        delete[] prev;
+        delete[] curr;
+        delete[] next;
 
-    init_zeroth(prev);
-    init_first(prev, curr);
+        delete[] edge_xm;
+        delete[] edge_xp;
+        delete[] edge_ym;
+        delete[] edge_yp;
+        delete[] edge_zm;
+        delete[] edge_zp;
+    }
 
-    printf("N=%d K=%d H=%.6f TAU=%.6f\n", N, K, H_X, TAU);
-    printf("C_X=%.6f C_Y=%.6f C_Z=%.6f\n", C_X, C_Y, C_Z);
-    printf("Error #%3d: %.17f\n", 0, get_error(prev,0));
-    printf("Error #%3d: %.17f\n", 1, get_error(curr,1));
-
-
-    for(int t=2; t<K; t++)
-    {
-        t_global = t;
-        calc_next(prev, curr, next);
-        printf("Error #%3d: %.17f\n", t, get_error(next,t));
-
+    void swap() {
         double * temp = prev;
         prev = curr;
         curr = next;
         next = temp;
     }
 
-    calc_next(prev, curr, next);
-    // print_layer(next, K);
-    printf("Error #%3d: %.17f\n", K, get_error(next,K));
+    double& get(double * layer, int i, int j, int k) {
+        if(i==sx-1)
+            return edge_xm[nz*(j - sy) + (k - sz)];
 
-    delete[] prev;
-    delete[] curr;
-    delete[] next;
+        if(i==ex+1)
+            return edge_xp[nz*(j - sy) + (k - sz)];
+
+        if(j==sy-1)
+            return edge_ym[nz*(i - sx) + (k - sz)];
+
+        if(j==ey+1)
+            return edge_yp[nz*(i - sx) + (k - sz)];
+
+        if(k==sz-1)
+            return edge_zm[ny*(i - sx) + (j - sy)];
+
+        if(k==ez+1)
+            return edge_zp[ny*(i - sx) + (j - sy)];
+
+
+        return layer[nz*ny*(i - sx) + nz*(j - sy) + (k - sz)];
+    }
+
+    void copyAxes(int x, int y, int z, double * from, double * to) {
+        int c = 0;
+        #pragma omp parallel for
+        for(int i = (x<0 ? sx : x); i <= (x<0 ? ex : x); i++)
+            for(int j = (y<0 ? sy : y); j <= (y<0 ? ey : y); j++)
+                for(int k = (z<0 ? sz : z); k <= (z<0 ? ez : z); k++)                
+                    to[c++] = get(from, i,j,k);
+    }
+
+    void exchange() {
+        copyAxes(sx+1, -1, -1, curr, edge_xp);
+        copyAxes(ex-1, -1, -1, curr, edge_xm);
+        copyAxes(-1, sy+1, -1, curr, edge_yp);
+        copyAxes(-1, ey-1, -1, curr, edge_ym);
+        copyAxes(-1, -1, sz+1, curr, edge_zp);
+        copyAxes(-1, -1, ez-1, curr, edge_zm);
+    }
+
+    void init0() {
+        #pragma omp parallel for
+        for(int i = sx-1; i <= ex+1; i++)
+            for(int j = sy-1; j <= ey+1;  j++)
+                for(int k = sz-1; k <= ez+1; k++)
+                {
+                    // if we are on the intersection of 2 or more edge planes
+                    if((i<sx) + (i>ex) + (j<sy) + (j>ey) + (k<sz) + (k>ez) > 1)
+                        continue;
+
+                    // since mod(nx,nx) == mod(0,nx) ==> 
+                    // will work correctly only if values on the opposite edges are equal
+                    get(next, i, j, k) = phi(L_X, L_Y, L_Z, H_X*mod(i,nx-1), H_Y*mod(j,ny-1), H_Z*mod(k,nz-1));
+                }
+    }
+
+    double delta(int i, int j, int k, double* curr) {
+        double d_x, d_y, d_z;
+        if(PERIOD_X && (i==0 || i==N))
+            d_x = (get(curr, 1, j, k) - get(curr, 0, j, k)) * C_X + (get(curr, N -1, j, k) - get(curr, 0, j, k)) * C_X;
+        else
+            d_x = (get(curr, i+1, j, k) - get(curr, i, j, k)) * C_X + (get(curr, i-1, j, k) - get(curr, i, j, k)) * C_X;
+
+        if(PERIOD_Y && (j==0 || j==N))
+            d_y = (get(curr, i, 1, k) - get(curr, i, 0, k)) * C_Y + (get(curr, i, N-1, k) - get(curr, i, 0, k)) * C_Y;
+        else
+            d_y = (get(curr, i, j-1, k) - get(curr, i, j, k)) * C_Y + (get(curr, i, j+1, k) - get(curr, i, j, k)) * C_Y;
+
+        if(PERIOD_Z && (k==0 || k==N))
+            d_z = (get(curr, i, j, 1) - get(curr, i, j, 0)) * C_Z + (get(curr, i, j, N-1) - get(curr, i, j, 0)) * C_Z;
+        else
+            d_z = (get(curr, i, j, k-1) - get(curr, i, j, k)) * C_Z + (get(curr, i, j, k+1) - get(curr, i, j, k)) * C_Z;
+
+        return d_x*C_X + d_y*C_Y + d_z*C_Z;
+    }
+
+    void init1() {
+        swap();
+        exchange();
+        #pragma omp parallel for
+        for(int i = sx; i <= ex; i++)
+            for(int j = sy; j <= ey; j++)
+                for(int k = sz; k <= ez; k++) {
+                    if(onConstEdge(i,j,k))
+                        get(next, i, j, k) = 0;
+                    else
+                        get(next, i, j, k) = get(curr, i, j, k) + delta(i,j,k,curr)/2;
+                }
+        t++;        
+    }
+
+    void calcNext() {
+        swap();
+        exchange();
+        #pragma omp parallel for
+        for(int i = sx; i <= ex; i++)
+            for(int j = sy; j <= ey; j++)
+                for(int k = sz; k <= ez; k++) {
+                    if(onConstEdge(i,j,k))
+                        get(next, i, j, k) = 0;
+                    else
+                        get(next, i, j, k) = get(curr, i, j, k) + (delta(i,j,k,curr) + get(curr, i, j, k) - get(prev, i, j, k));
+
+                }
+        t++;
+    }
+
+    double get_error()
+    {
+        double max_err=0, temp;
+        // int mi=0,mj=0,mk=0;
+        for(int i = 0; i <= N; ++i)
+            for (int j = 0; j <= N; ++j)
+                for (int k = 0; k <= N; ++k)
+                {
+                    temp = std::abs(u_analytical(L_X,L_Y,L_Z, H_X*i, H_Y*j, H_Z*k, t*TAU) - get(next, i, j, k));
+                    if(temp > max_err)
+                        max_err = temp;
+                        // mi=i;
+                        // mj=j;
+                        // mk=k;
+                }
+
+        // printf("%d %d %d | ", mi, mj, mk);
+        return max_err;
+    }
+
+    void print_layer()
+    {
+        for(int i = 0; i <= N; ++i)
+        {
+            for (int j = 0; j <= N; ++j)
+            {
+                for (int k = 0; k <= N; ++k)
+                    printf("%7.3f", get(next, i, j, k));
+                printf("\n");
+                printf("\033[1;30m");
+                for (int k = 0; k <= N; ++k)
+                    printf("%7.3f", u_analytical(L_X,L_Y,L_Z, H_X*i, H_Y*j, H_Z*k, t*TAU));
+                printf(" ***\n");
+                printf("\033[0m");
+            }
+            printf("\n\n");
+        }
+    }
+};
+
+void loop()
+{
+    printf("N=%d K=%d H=%.6f TAU=%.6f\n", N, K, H_X, TAU);
+    printf("C_X=%.6f C_Y=%.6f C_Z=%.6f\n", C_X, C_Y, C_Z);
+
+    Block b = Block(0);
+    b.init0();
+    printf("Error #%3d: %.17f\n", b.t, b.get_error());
+    b.init1();
+    
+    printf("Error #%3d: %.17f\n", b.t, b.get_error());
+
+
+    for(int t=2; t<=K; t++)
+    {
+        b.calcNext();
+        printf("New Error #%3d: %.17f\n", t, b.get_error());
+    }
 }
 
 int main(int argc, char const *argv[])

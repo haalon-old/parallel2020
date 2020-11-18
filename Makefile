@@ -5,7 +5,7 @@ polus: CC = -mpixlC
 bg: CC = mpixlcxx
 
 # note that '-fopenmp' is a flag and not a library
-FLAGS = -Wall -O0 -fopenmp -g
+FLAGS = -Wall -O0 -g -fopenmp
 polus: FLAGS = -qsmp=omp
 bg: FLAGS = -qsmp=omp
 
@@ -13,8 +13,8 @@ bg: FLAGS = -qsmp=omp
 LIBRARIES = -lm -lpthread
 INCLUDES = -I.
 
-HEADERS = analytic.h
-SOURCES = main.cpp analytic.cpp
+HEADERS = problem.h
+SOURCES = main.cpp
 
 OBJECTS_DIRECTORY = objects/
 OBJECTS_LIST = $(SOURCES:.cpp=.o)
@@ -27,9 +27,11 @@ RESET = \033[0m
 .PHONY: all clean fclean re
 
 all: $(NAME)
-polus: $(NAME)
+polus: modules $(NAME)
 bg: $(NAME)
 
+modules:
+	module load SpectrumMPI
 
 $(NAME): $(OBJECTS_DIRECTORY) $(OBJECTS)
 	@$(CC) $(FLAGS) $(LIBRARIES) $(INCLUDES) $(OBJECTS) -o $(NAME)

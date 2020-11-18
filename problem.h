@@ -1,7 +1,13 @@
-#include <math.h>
-#include "analytic.h"
+#ifndef ANALYTIC_H
+#define ANALYTIC_H
 
-// using Real = double
+#include <math.h>
+
+#define PI 3.14159265358979323846  /* pi */
+
+#define PERIOD_X false
+#define PERIOD_Y false
+#define PERIOD_Z true
 
 double u_analytical(double l_x, double l_y, double l_z, double x, double y, double z, double t)
 {
@@ -15,3 +21,5 @@ double phi(double l_x, double l_y, double l_z, double x, double y, double z)
 	// phi == u_analytical(l_x,l_y,l_z,x,y,z,0);
 	return sin(PI*x/l_x) * sin(PI*y/l_y) * sin(2*PI*z/l_z);
 }
+
+#endif
