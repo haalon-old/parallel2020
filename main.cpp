@@ -8,8 +8,8 @@
 #define L_Z 1.0
 #define T 0.2
 
-#define N 128
-#define K 128
+#define N 32
+#define K 32
 
 const double H_X = L_X / N;
 const double H_Y = L_Y / N;
@@ -152,7 +152,6 @@ struct Block {
 
     void copyAxes(int x, int y, int z, double * from, double * to) {
         int c = 0;
-        #pragma omp parallel for
         for(int i = (x<0 ? sx : x); i <= (x<0 ? ex : x); i++)
             for(int j = (y<0 ? sy : y); j <= (y<0 ? ey : y); j++)
                 for(int k = (z<0 ? sz : z); k <= (z<0 ? ez : z); k++)                
@@ -170,36 +169,19 @@ struct Block {
 
     void init0() {
         #pragma omp parallel for
-        for(int i = sx-1; i <= ex+1; i++)
-            for(int j = sy-1; j <= ey+1;  j++)
-                for(int k = sz-1; k <= ez+1; k++)
-                {
-                    // if we are on the intersection of 2 or more edge planes
-                    if((i<sx) + (i>ex) + (j<sy) + (j>ey) + (k<sz) + (k>ez) > 1)
-                        continue;
+        for(int i = sx; i <= ex; i++)
+            for(int j = sy; j <= ey;  j++)
+                for(int k = sz; k <= ez; k++)
+                    get(next, i, j, k) = phi(L_X, L_Y, L_Z, H_X*i, H_Y*j, H_Z*k);
 
-                    // since mod(nx,nx) == mod(0,nx) ==> 
-                    // will work correctly only if values on the opposite edges are equal
-                    get(next, i, j, k) = phi(L_X, L_Y, L_Z, H_X*mod(i,nx-1), H_Y*mod(j,ny-1), H_Z*mod(k,nz-1));
-                }
     }
 
     double delta(int i, int j, int k, double* curr) {
         double d_x, d_y, d_z;
-        if(PERIOD_X && (i==0 || i==N))
-            d_x = (get(curr, 1, j, k) - get(curr, 0, j, k)) * C_X + (get(curr, N -1, j, k) - get(curr, 0, j, k)) * C_X;
-        else
-            d_x = (get(curr, i+1, j, k) - get(curr, i, j, k)) * C_X + (get(curr, i-1, j, k) - get(curr, i, j, k)) * C_X;
 
-        if(PERIOD_Y && (j==0 || j==N))
-            d_y = (get(curr, i, 1, k) - get(curr, i, 0, k)) * C_Y + (get(curr, i, N-1, k) - get(curr, i, 0, k)) * C_Y;
-        else
-            d_y = (get(curr, i, j-1, k) - get(curr, i, j, k)) * C_Y + (get(curr, i, j+1, k) - get(curr, i, j, k)) * C_Y;
-
-        if(PERIOD_Z && (k==0 || k==N))
-            d_z = (get(curr, i, j, 1) - get(curr, i, j, 0)) * C_Z + (get(curr, i, j, N-1) - get(curr, i, j, 0)) * C_Z;
-        else
-            d_z = (get(curr, i, j, k-1) - get(curr, i, j, k)) * C_Z + (get(curr, i, j, k+1) - get(curr, i, j, k)) * C_Z;
+        d_x = (get(curr, i+1, j, k) - get(curr, i, j, k)) * C_X + (get(curr, i-1, j, k) - get(curr, i, j, k)) * C_X;
+        d_y = (get(curr, i, j-1, k) - get(curr, i, j, k)) * C_Y + (get(curr, i, j+1, k) - get(curr, i, j, k)) * C_Y;
+        d_z = (get(curr, i, j, k-1) - get(curr, i, j, k)) * C_Z + (get(curr, i, j, k+1) - get(curr, i, j, k)) * C_Z;
 
         return d_x*C_X + d_y*C_Y + d_z*C_Z;
     }
@@ -238,7 +220,7 @@ struct Block {
     double get_error()
     {
         double max_err=0, temp;
-        // int mi=0,mj=0,mk=0;
+
         for(int i = 0; i <= N; ++i)
             for (int j = 0; j <= N; ++j)
                 for (int k = 0; k <= N; ++k)
@@ -246,12 +228,8 @@ struct Block {
                     temp = std::abs(u_analytical(L_X,L_Y,L_Z, H_X*i, H_Y*j, H_Z*k, t*TAU) - get(next, i, j, k));
                     if(temp > max_err)
                         max_err = temp;
-                        // mi=i;
-                        // mj=j;
-                        // mk=k;
                 }
 
-        // printf("%d %d %d | ", mi, mj, mk);
         return max_err;
     }
 
