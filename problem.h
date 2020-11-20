@@ -1,6 +1,5 @@
 #pragma once
-
-#include <math.h>
+#include <cmath>
 
 #define PI 3.14159265358979323846  /* pi */
 
@@ -13,8 +12,8 @@
 #define L_Z 1.0
 #define T 0.2
 
-#define N 64
-#define K 64
+#define N 32
+#define K 32
 
 const double H_X = L_X / N;
 const double H_Y = L_Y / N;

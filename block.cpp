@@ -2,6 +2,7 @@
 #include <math.h>
 #include <omp.h>
 #include "block.hpp"
+#include "comm.hpp"
 #include "problem.h"
 
 char onConstEdge(int i, int j, int k) {
@@ -113,15 +114,27 @@ void Block::copyAxes(int x, int y, int z, double * from, double * to) {
                 to[c++] = get(from, i,j,k);
 }
 
-void Block::exchange() {
-    copyAxes(ex-1, -1, -1, curr, edges[0]);
-    copyAxes(sx+1, -1, -1, curr, edges[5]);
+void Block::exchange(Comm * comm) {
+    // double * temp = new double[ny*nz];
+
+    copyAxes(ex-1, -1, -1, curr, edges[5]);
+    copyAxes(sx+1, -1, -1, curr, edges[0]);
     
-    copyAxes(-1, ey-1, -1, curr, edges[1]);
-    copyAxes(-1, sy+1, -1, curr, edges[4]);
+    copyAxes(-1, ey-1, -1, curr, edges[4]);
+    copyAxes(-1, sy+1, -1, curr, edges[1]);
     
-    copyAxes(-1, -1, ez-1, curr, edges[2]);
-    copyAxes(-1, -1, sz+1, curr, edges[3]);
+    copyAxes(-1, -1, ez-1, curr, edges[3]);
+    copyAxes(-1, -1, sz+1, curr, edges[2]);
+
+    // we send edge[5], we expect edge[0] from the x+ neighbour
+    comm->swap(px, ny*nz, edges[5], 0);
+    comm->swap(mx, ny*nz, edges[0], 5);
+
+    comm->swap(py, nx*nz, edges[4], 1);
+    comm->swap(my, nx*nz, edges[1], 4);
+
+    comm->swap(pz, nx*ny, edges[3], 2);
+    comm->swap(pz, nx*ny, edges[2], 3);
 }
 
 void Block::init0() {
@@ -143,9 +156,9 @@ double Block::delta(int i, int j, int k, double* curr) {
     return d_x*C_X + d_y*C_Y + d_z*C_Z;
 }
 
-void Block::init1() {
+void Block::init1(Comm * comm) {
     swap();
-    exchange();
+    exchange(comm);
     #pragma omp parallel for
     for(int i = sx; i <= ex; i++)
         for(int j = sy; j <= ey; j++)
@@ -158,9 +171,9 @@ void Block::init1() {
     t++;        
 }
 
-void Block::calcNext() {
+void Block::calcNext(Comm * comm) {
     swap();
-    exchange();
+    exchange(comm);
     #pragma omp parallel for
     for(int i = sx; i <= ex; i++)
         for(int j = sy; j <= ey; j++)

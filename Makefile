@@ -13,8 +13,8 @@ bg: FLAGS = -qsmp=omp
 LIBRARIES = -lm -lpthread
 INCLUDES = -I.
 
-HEADERS = problem.h block.hpp
-SOURCES = main.cpp block.cpp
+HEADERS = problem.h comm.hpp block.hpp
+SOURCES = main.cpp comm.cpp block.cpp 
 
 OBJECTS_DIRECTORY = objects/
 OBJECTS_LIST = $(SOURCES:.cpp=.o)

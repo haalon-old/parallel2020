@@ -1,5 +1,6 @@
 #pragma once
 
+struct Comm;
 
 struct Block {
     int t = 0;
@@ -26,13 +27,13 @@ struct Block {
     void swap();
 
     void copyAxes(int x, int y, int z, double * from, double * to);
-    void exchange();
+    void exchange(Comm * comm);
     
     double delta(int i, int j, int k, double* curr);
 
     void init0();
-    void init1();
-    void calcNext();
+    void init1(Comm * comm);
+    void calcNext(Comm * comm);
 
     double get_error();
     void print_layer();
