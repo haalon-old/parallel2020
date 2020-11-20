@@ -12,8 +12,8 @@
 #define L_Z 1.0
 #define T 0.2
 
-#define N 32
-#define K 32
+#define N 64
+#define K 64
 
 const double H_X = L_X / N;
 const double H_Y = L_Y / N;
@@ -25,9 +25,9 @@ const double C_X = TAU / H_X;
 const double C_Y = TAU / H_Y;
 const double C_Z = TAU / H_Z;
 
-#define BX 1
-#define BY 1
-#define BZ 1
+#define BX 2
+#define BY 2
+#define BZ 2
 
 
 inline double u_analytical(double l_x, double l_y, double l_z, double x, double y, double z, double t)

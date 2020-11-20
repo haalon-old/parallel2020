@@ -5,6 +5,8 @@
 // define static member
 Comm ** Comm::array;
 
+Comm::Comm() {}
+
 Comm::Comm(int rank, int size, Block * block) {
     this->rank = rank;
     this->size = size;

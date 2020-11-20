@@ -19,6 +19,7 @@ struct Block {
     int py, my;
     int pz, mz;
 
+    Block();
     Block(int rank);
     ~Block();
 
@@ -27,13 +28,14 @@ struct Block {
     void swap();
 
     void copyAxes(int x, int y, int z, double * from, double * to);
+    void prepare();
     void exchange(Comm * comm);
     
     double delta(int i, int j, int k, double* curr);
 
     void init0();
-    void init1(Comm * comm);
-    void calcNext(Comm * comm);
+    void init1();
+    void calcNext();
 
     double get_error();
     void print_layer();

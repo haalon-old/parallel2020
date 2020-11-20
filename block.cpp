@@ -19,8 +19,10 @@ char onConstEdge(int i, int j, int k) {
 }
 
 int mod(int i, int n) {
-    return (i % n) + (n * (i < 0));
+    return ((i % n) + n) % n;
 }
+
+Block::Block() {}
 
 Block::Block(int rank) {
     int k = rank % BZ;
@@ -63,8 +65,12 @@ Block::Block(int rank) {
     edges[2] = new double[ny*nx]; // z-
     edges[3] = new double[ny*nx]; // z+
 
-    printf("sx %d, ex %d\n", sx, ex);
-    printf("nx %d, ny %d nz %d\n", nx, ny, nz);
+    // printf("\tsx %d, ex %d\n", sx, ex);
+    // printf("\tsy %d, ey %d\n", sy, ey);
+    // printf("\tsz %d, ez %d\n", sz, ez);
+    // printf("\tnx %d, ny %d nz %d\n", nx, ny, nz);
+
+    // printf("\tx %d %d, y %d %d, z %d %d\n", mx, px, my, py, mz, pz);
 }
 
 Block::~Block() {
@@ -114,20 +120,21 @@ void Block::copyAxes(int x, int y, int z, double * from, double * to) {
                 to[c++] = get(from, i,j,k);
 }
 
-void Block::exchange(Comm * comm) {
-    // double * temp = new double[ny*nz];
+void Block::prepare() {
+    copyAxes(ex-1, -1, -1, next, edges[5]);
+    copyAxes(sx+1, -1, -1, next, edges[0]);
+    
+    copyAxes(-1, ey-1, -1, next, edges[4]);
+    copyAxes(-1, sy+1, -1, next, edges[1]);
+    
+    copyAxes(-1, -1, ez-1, next, edges[3]);
+    copyAxes(-1, -1, sz+1, next, edges[2]);
+}
 
-    copyAxes(ex-1, -1, -1, curr, edges[5]);
-    copyAxes(sx+1, -1, -1, curr, edges[0]);
-    
-    copyAxes(-1, ey-1, -1, curr, edges[4]);
-    copyAxes(-1, sy+1, -1, curr, edges[1]);
-    
-    copyAxes(-1, -1, ez-1, curr, edges[3]);
-    copyAxes(-1, -1, sz+1, curr, edges[2]);
+void Block::exchange(Comm * comm) {
 
     // we send edge[5], we expect edge[0] from the x+ neighbour
-    comm->swap(px, ny*nz, edges[5], 0);
+    comm->swap(px, ny*nz, edges[5], 5);
     comm->swap(mx, ny*nz, edges[0], 5);
 
     comm->swap(py, nx*nz, edges[4], 1);
@@ -143,7 +150,7 @@ void Block::init0() {
         for(int j = sy; j <= ey;  j++)
             for(int k = sz; k <= ez; k++)
                 get(next, i, j, k) = phi(L_X, L_Y, L_Z, H_X*i, H_Y*j, H_Z*k);
-
+    prepare();
 }
 
 double Block::delta(int i, int j, int k, double* curr) {
@@ -156,9 +163,9 @@ double Block::delta(int i, int j, int k, double* curr) {
     return d_x*C_X + d_y*C_Y + d_z*C_Z;
 }
 
-void Block::init1(Comm * comm) {
+void Block::init1() {
     swap();
-    exchange(comm);
+    // exchange(comm);
     #pragma omp parallel for
     for(int i = sx; i <= ex; i++)
         for(int j = sy; j <= ey; j++)
@@ -168,12 +175,13 @@ void Block::init1(Comm * comm) {
                 else
                     get(next, i, j, k) = get(curr, i, j, k) + delta(i,j,k,curr)/2;
             }
-    t++;        
+    t++;
+    prepare();
 }
 
-void Block::calcNext(Comm * comm) {
+void Block::calcNext() {
     swap();
-    exchange(comm);
+    // exchange(comm);
     #pragma omp parallel for
     for(int i = sx; i <= ex; i++)
         for(int j = sy; j <= ey; j++)
@@ -185,15 +193,16 @@ void Block::calcNext(Comm * comm) {
 
             }
     t++;
+    prepare();
 }
 
 double Block::get_error()
 {
     double max_err=0, temp;
 
-    for(int i = 0; i <= N; ++i)
-        for (int j = 0; j <= N; ++j)
-            for (int k = 0; k <= N; ++k)
+    for(int i = sx; i <= ex; ++i)
+        for (int j = sy; j <= ey; ++j)
+            for (int k = sz; k <= ez; ++k)
             {
                 temp = std::abs(u_analytical(L_X,L_Y,L_Z, H_X*i, H_Y*j, H_Z*k, t*TAU) - get(next, i, j, k));
                 if(temp > max_err)
@@ -205,15 +214,15 @@ double Block::get_error()
 
 void Block::print_layer()
 {
-    for(int i = 0; i <= N; ++i)
+    for(int i = sx; i <= ex; ++i)
     {
-        for (int j = 0; j <= N; ++j)
+        for (int j = sy; j <= ey; ++j)
         {
-            for (int k = 0; k <= N; ++k)
+            for (int k = sz; k <= ez; ++k)
                 printf("%7.3f", get(next, i, j, k));
             printf("\n");
             printf("\033[1;30m");
-            for (int k = 0; k <= N; ++k)
+            for (int k = sz; k <= ez; ++k)
                 printf("%7.3f", u_analytical(L_X,L_Y,L_Z, H_X*i, H_Y*j, H_Z*k, t*TAU));
             printf(" ***\n");
             printf("\033[0m");

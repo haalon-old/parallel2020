@@ -7,6 +7,8 @@ struct Comm
     int rank, size;
     static Comm ** array;
     Block * block;
+
+    Comm();
     Comm(int rank, int size, Block * block);
     ~Comm();
 
