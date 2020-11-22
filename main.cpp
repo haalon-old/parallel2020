@@ -5,6 +5,17 @@
 #include "block.hpp"
 #include "comm.hpp"
 
+void sync(Block ** b, Comm ** c)  {
+    float m = 0;
+    // for(int i = 0; i<BX*BY*BZ; i++)
+    //     b[i]->prepare();
+    for(int i = 0; i<BX*BY*BZ; i++)
+    {
+        b[i]->exchange(c[i]);
+        m = b[i]->get_error() > m ? b[i]->get_error() : m;
+    }
+    printf("\tGlobal err: %.17f\n", m);
+}
 
 void loop()
 {
@@ -18,25 +29,20 @@ void loop()
         b[i] = new Block(i);
         c[i] = new Comm(i, BX*BY*BZ, b[i]);
 
-
         b[i]->init0();
-        printf("\tBlock #%3d: %.17f\n", b[i]->t, b[i]->get_error());
+        printf("\tBlock #%3d: %.17f\n", i, b[i]->get_error());
     }
+    sync(b,c);
     printf("\n");
-
-    for(int i = 0; i<BX*BY*BZ; i++)
-        b[i]->exchange(c[i]);
 
     printf("Error #%3d\n", 1);
     for(int i = 0; i<BX*BY*BZ; i++) {
         b[i]->init1();
-        printf("\tBlock #%3d: %.17f\n", b[i]->t, b[i]->get_error());
+        printf("\tBlock #%3d: %.17f\n", i, b[i]->get_error());
 
     }
+    sync(b,c);
     printf("\n");
-
-    for(int i = 0; i<BX*BY*BZ; i++)
-        b[i]->exchange(c[i]);
 
     for(int t=2; t<=K; t++)
     {
@@ -45,12 +51,9 @@ void loop()
             b[i]->calcNext();
             printf("\tBlock #%3d: %.17f\n", i, b[i]->get_error());
         }
+        sync(b,c);
         printf("\n");
-        for(int i = 0; i<BX*BY*BZ; i++)
-            b[i]->exchange(c[i]);
     }
-    // b[0]->print_layer();
-    // b[1]->print_layer();
 }
 
 int main(int argc, char const *argv[])

@@ -10,11 +10,13 @@
 #define L_X 1.0
 #define L_Y 1.0
 #define L_Z 1.0
-#define T 0.2
+#define T 1.0
 
-#define N 64
+#define N 32
 #define K 64
 
+
+#define NN (N+1)
 const double H_X = L_X / N;
 const double H_Y = L_Y / N;
 const double H_Z = L_Z / N;
@@ -26,7 +28,7 @@ const double C_Y = TAU / H_Y;
 const double C_Z = TAU / H_Z;
 
 #define BX 2
-#define BY 2
+#define BY 4
 #define BZ 2
 
 
