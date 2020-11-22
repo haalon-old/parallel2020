@@ -29,16 +29,20 @@ Block::Block(int rank) {
     int j = rank / BZ % BY;
     int i = rank / BZ / BY;
 
+    // if axis is periodic  
+    // the first and the last node on that axis
+    // is equivalent
+
     sx = (int) round(1.0*N/BX*i);
-    ex = (int) round(1.0*N/BX*(i+1));
+    ex = (int) round(1.0*N/BX*(i+1))-1;
     nx = ex - sx + 1;
     
     sy = (int) round(1.0*N/BY*j);
-    ey = (int) round(1.0*N/BY*(j+1));
+    ey = (int) round(1.0*N/BY*(j+1))-1;
     ny = ey - sy + 1;
     
     sz = (int) round(1.0*N/BZ*k);
-    ez = (int) round(1.0*N/BZ*(k+1));
+    ez = (int) round(1.0*N/BZ*(k+1))-1;
     nz = ez - sz + 1;
 
     // ranks of adjacent blocks
@@ -65,12 +69,12 @@ Block::Block(int rank) {
     edges[2] = new double[ny*nx]; // z-
     edges[3] = new double[ny*nx]; // z+
 
-    // printf("\tsx %d, ex %d\n", sx, ex);
-    // printf("\tsy %d, ey %d\n", sy, ey);
-    // printf("\tsz %d, ez %d\n", sz, ez);
-    // printf("\tnx %d, ny %d nz %d\n", nx, ny, nz);
+    printf("\tsx %d, ex %d\n", sx, ex);
+    printf("\tsy %d, ey %d\n", sy, ey);
+    printf("\tsz %d, ez %d\n", sz, ez);
+    printf("\tnx %d, ny %d nz %d\n", nx, ny, nz);
 
-    // printf("\tx %d %d, y %d %d, z %d %d\n", mx, px, my, py, mz, pz);
+    printf("\tx %d %d, y %d %d, z %d %d\n", mx, px, my, py, mz, pz);
 }
 
 Block::~Block() {
@@ -121,20 +125,21 @@ void Block::copyAxes(int x, int y, int z, double * from, double * to) {
 }
 
 void Block::prepare() {
-    copyAxes(ex-1, -1, -1, next, edges[5]);
-    copyAxes(sx+1, -1, -1, next, edges[0]);
+    // 
+    copyAxes(ex, -1, -1, next, edges[5]);
+    copyAxes(sx, -1, -1, next, edges[0]);
     
-    copyAxes(-1, ey-1, -1, next, edges[4]);
-    copyAxes(-1, sy+1, -1, next, edges[1]);
+    copyAxes(-1, ey, -1, next, edges[4]);
+    copyAxes(-1, sy, -1, next, edges[1]);
     
-    copyAxes(-1, -1, ez-1, next, edges[3]);
-    copyAxes(-1, -1, sz+1, next, edges[2]);
+    copyAxes(-1, -1, ez, next, edges[3]);
+    copyAxes(-1, -1, sz, next, edges[2]);
 }
 
 void Block::exchange(Comm * comm) {
 
     // we send edge[5], we expect edge[0] from the x+ neighbour
-    comm->swap(px, ny*nz, edges[5], 5);
+    comm->swap(px, ny*nz, edges[5], 0);
     comm->swap(mx, ny*nz, edges[0], 5);
 
     comm->swap(py, nx*nz, edges[4], 1);
@@ -145,7 +150,7 @@ void Block::exchange(Comm * comm) {
 }
 
 void Block::init0() {
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for(int i = sx; i <= ex; i++)
         for(int j = sy; j <= ey;  j++)
             for(int k = sz; k <= ez; k++)
@@ -166,7 +171,7 @@ double Block::delta(int i, int j, int k, double* curr) {
 void Block::init1() {
     swap();
     // exchange(comm);
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for(int i = sx; i <= ex; i++)
         for(int j = sy; j <= ey; j++)
             for(int k = sz; k <= ez; k++) {
@@ -182,7 +187,7 @@ void Block::init1() {
 void Block::calcNext() {
     swap();
     // exchange(comm);
-    #pragma omp parallel for
+    // #pragma omp parallel for
     for(int i = sx; i <= ex; i++)
         for(int j = sy; j <= ey; j++)
             for(int k = sz; k <= ez; k++) {
