@@ -150,7 +150,7 @@ void Block::exchange(Comm * comm) {
 }
 
 void Block::init0() {
-    // #pragma omp parallel for
+    #pragma omp parallel for
     for(int i = sx; i <= ex; i++)
         for(int j = sy; j <= ey;  j++)
             for(int k = sz; k <= ez; k++)
@@ -171,7 +171,7 @@ double Block::delta(int i, int j, int k, double* curr) {
 void Block::init1() {
     swap();
     // exchange(comm);
-    // #pragma omp parallel for
+    #pragma omp parallel for
     for(int i = sx; i <= ex; i++)
         for(int j = sy; j <= ey; j++)
             for(int k = sz; k <= ez; k++) {
@@ -187,7 +187,7 @@ void Block::init1() {
 void Block::calcNext() {
     swap();
     // exchange(comm);
-    // #pragma omp parallel for
+    #pragma omp parallel for
     for(int i = sx; i <= ex; i++)
         for(int j = sy; j <= ey; j++)
             for(int k = sz; k <= ez; k++) {
