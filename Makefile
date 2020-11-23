@@ -2,15 +2,15 @@ NAME = main
 
 CC = g++
 polus: CC = -mpixlC
-bg: CC = mpixlcxx
+bg: CC = mpixlcxx_r
 
 # note that '-fopenmp' is a flag and not a library
-FLAGS = -Wall -O0 -g -fopenmp
+FLAGS = -Wall -O0 -g -fopenmp -D FAKEMPI
 polus: FLAGS = -qsmp=omp
 bg: FLAGS = -qsmp=omp
 
 
-LIBRARIES = -lm -lpthread
+LIBRARIES = -lm
 INCLUDES = -I.
 
 HEADERS = problem.h comm.hpp block.hpp

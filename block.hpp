@@ -1,9 +1,8 @@
 #pragma once
 
-struct Comm;
 
 struct Block {
-    int t = 0;
+    int t;
 
     double * prev;
     double * curr;
@@ -15,10 +14,6 @@ struct Block {
     int sy, ey, ny;
     int sz, ez, nz;
 
-    int px, mx;
-    int py, my;
-    int pz, mz;
-
     Block();
     Block(int rank);
     ~Block();
@@ -29,7 +24,6 @@ struct Block {
 
     void copyAxes(int x, int y, int z, double * from, double * to);
     void prepare();
-    void exchange(Comm * comm);
     
     double delta(int i, int j, int k, double* curr);
 

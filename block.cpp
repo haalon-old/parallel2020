@@ -18,13 +18,14 @@ char onConstEdge(int i, int j, int k) {
     return 0;
 }
 
-int mod(int i, int n) {
-    return ((i % n) + n) % n;
-}
+// int mod(int i, int n) {
+//     return ((i % n) + n) % n;
+// }
 
 Block::Block() {}
 
 Block::Block(int rank) {
+    t = 0;
     int k = rank % BZ;
     int j = rank / BZ % BY;
     int i = rank / BZ / BY;
@@ -46,14 +47,14 @@ Block::Block(int rank) {
     nz = ez - sz + 1;
 
     // ranks of adjacent blocks
-    pz = mod(k+1, BZ) + BZ*j + BZ*BY*i;
-    mz = mod(k-1, BZ) + BZ*j + BZ*BY*i;
+    // pz = mod(k+1, BZ) + BZ*j + BZ*BY*i;
+    // mz = mod(k-1, BZ) + BZ*j + BZ*BY*i;
 
-    py = k + BZ*mod(j+1, BY) + BZ*BY*i;
-    my = k + BZ*mod(j-1, BY) + BZ*BY*i;
+    // py = k + BZ*mod(j+1, BY) + BZ*BY*i;
+    // my = k + BZ*mod(j-1, BY) + BZ*BY*i;
 
-    px = k + BZ*j + BZ*BY*mod(i+1, BX);
-    mx = k + BZ*j + BZ*BY*mod(i-1, BX);
+    // px = k + BZ*j + BZ*BY*mod(i+1, BX);
+    // mx = k + BZ*j + BZ*BY*mod(i-1, BX);
 
     prev = new double[nx*ny*nz];
     curr = new double[nx*ny*nz];
@@ -74,7 +75,7 @@ Block::Block(int rank) {
     printf("\tsz %d, ez %d\n", sz, ez);
     printf("\tnx %d, ny %d nz %d\n", nx, ny, nz);
 
-    printf("\tx %d %d, y %d %d, z %d %d\n", mx, px, my, py, mz, pz);
+    // printf("\tx %d %d, y %d %d, z %d %d\n", mx, px, my, py, mz, pz);
 }
 
 Block::~Block() {
@@ -136,18 +137,18 @@ void Block::prepare() {
     copyAxes(-1, -1, sz, next, edges[2]);
 }
 
-void Block::exchange(Comm * comm) {
+// void Block::exchange(Comm * comm) {
 
-    // we send edge[5], we expect edge[0] from the x+ neighbour
-    comm->swap(px, ny*nz, edges[5], 0);
-    comm->swap(mx, ny*nz, edges[0], 5);
+//     // we send edge[5], we expect edge[0] from the x+ neighbour
+//     comm->swap(px, ny*nz, edges[5], 0);
+//     comm->swap(mx, ny*nz, edges[0], 5);
 
-    comm->swap(py, nx*nz, edges[4], 1);
-    comm->swap(my, nx*nz, edges[1], 4);
+//     comm->swap(py, nx*nz, edges[4], 1);
+//     comm->swap(my, nx*nz, edges[1], 4);
 
-    comm->swap(pz, nx*ny, edges[3], 2);
-    comm->swap(pz, nx*ny, edges[2], 3);
-}
+//     comm->swap(pz, nx*ny, edges[3], 2);
+//     comm->swap(pz, nx*ny, edges[2], 3);
+// }
 
 void Block::init0() {
     #pragma omp parallel for
