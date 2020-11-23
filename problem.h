@@ -7,29 +7,27 @@
 #define PERIOD_Y false
 #define PERIOD_Z true
 
-#define L_X 1.0
-#define L_Y 1.0
-#define L_Z 1.0
-#define T 1.0
+extern double L_X;
+extern double L_Y;
+extern double L_Z;
+extern double T;
 
-#define N 32
-#define K 64
+extern int N;
+extern int K;
 
+extern double H_X;
+extern double H_Y;
+extern double H_Z;
 
-#define NN (N+1)
-const double H_X = L_X / N;
-const double H_Y = L_Y / N;
-const double H_Z = L_Z / N;
+extern double TAU;
 
-const double TAU = T / K;
+extern double C_X;
+extern double C_Y;
+extern double C_Z;
 
-const double C_X = TAU / H_X;
-const double C_Y = TAU / H_Y;
-const double C_Z = TAU / H_Z;
-
-#define BX 2
-#define BY 4
-#define BZ 2
+extern int BX;
+extern int BY;
+extern int BZ;
 
 
 inline double u_analytical(double l_x, double l_y, double l_z, double x, double y, double z, double t)
