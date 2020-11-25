@@ -1,13 +1,17 @@
-NAME = main
+NAME = task
 
 CC = g++
 polus: CC = -mpixlC
 bg: CC = mpixlcxx_r
 
+bg_: CC = mpixlcxx_r
+
 # note that '-fopenmp' is a flag and not a library
 FLAGS = -Wall -O0 -g -fopenmp -D FAKEMPI
 polus: FLAGS = -qsmp=omp
 bg: FLAGS = -qsmp=omp
+# No opemMP version
+bg_: FLAGS = 
 
 
 LIBRARIES = -lm
@@ -29,6 +33,8 @@ RESET = \033[0m
 all: $(NAME)
 polus: modules $(NAME)
 bg: $(NAME)
+
+bg_: $(NAME)
 
 modules:
 	module load SpectrumMPI
