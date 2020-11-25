@@ -70,10 +70,10 @@ Block::Block(int rank) {
     edges[2] = new double[ny*nx]; // z-
     edges[3] = new double[ny*nx]; // z+
 
-    printf("\tsx %d, ex %d\n", sx, ex);
-    printf("\tsy %d, ey %d\n", sy, ey);
-    printf("\tsz %d, ez %d\n", sz, ez);
-    printf("\tnx %d, ny %d nz %d\n", nx, ny, nz);
+    // printf("\tsx %d, ex %d\n", sx, ex);
+    // printf("\tsy %d, ey %d\n", sy, ey);
+    // printf("\tsz %d, ez %d\n", sz, ez);
+    // printf("\tnx %d, ny %d nz %d\n", nx, ny, nz);
 
     // printf("\tx %d %d, y %d %d, z %d %d\n", mx, px, my, py, mz, pz);
 }

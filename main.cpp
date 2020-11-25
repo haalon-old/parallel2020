@@ -130,7 +130,7 @@ void parseArgs(int argc, char *argv[]) {
 #else
     void sync(Block * b, Comm * c) {
         double err = b->get_error(), temp;
-        printf("\tBlock #%3d: %.17f\n", c->rank, err);
+        // printf("\tBlock #%3d: %.17f\n", c->rank, err);
 
         c->exchange();
 
