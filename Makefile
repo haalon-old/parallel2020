@@ -31,13 +31,13 @@ RESET = \033[0m
 .PHONY: all clean fclean re
 
 all: $(NAME)
-polus: modules $(NAME)
+polus: $(NAME)
 bg: $(NAME)
 
 bg_: $(NAME)
 
-modules:
-	module load SpectrumMPI
+# modules:
+# 	module load SpectrumMPI
 
 $(NAME): $(OBJECTS_DIRECTORY) $(OBJECTS)
 	@$(CC) $(FLAGS) $(LIBRARIES) $(INCLUDES) $(OBJECTS) -o $(NAME)
@@ -63,4 +63,3 @@ re:
 	@$(MAKE) fclean
 	@$(MAKE) all
 
-	
