@@ -8,9 +8,19 @@ import pandas as pd
 
 df = pd.read_csv('data-64-25.csv')
 # df.set_index(['x', 'y', 'z'])
-df2 = df.loc[df['z'] == 16]
+df2 = df.loc[df['z'] == 24].to_numpy()
 
-print(df2[:3])
+df2 = df2[df2[:,1].argsort(kind='mergesort')]
+df2 = df2[df2[:,0].argsort(kind='mergesort')]
+print(df2[:9])
+
+xs = (df2[:,0] / 64).reshape((64,64))
+ys = (df2[:,1] / 64).reshape((64,64))
+zs = df2[:,3].reshape((64,64))
+# xs, ys = np.meshgrid(xs, ys)
+print(xs.shape)
+print(len(xs))
+
 
 
 t = 0.25
@@ -27,7 +37,7 @@ R = np.sqrt(X**2 + Y**2)
 Z = np.sin(R)
 
 # Plot the surface.
-surf = ax.plot_surface(X, Y, Z, cmap=cm.coolwarm,
+surf = ax.plot_surface(xs, ys, zs, cmap=cm.coolwarm,
                        linewidth=0, antialiased=False)
 
 # Customize the z axis.
