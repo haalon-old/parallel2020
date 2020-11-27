@@ -4,8 +4,8 @@
 #define PI 3.14159265358979323846  /* pi */
 
 #define PERIOD_X false
-#define PERIOD_Y false
-#define PERIOD_Z true
+#define PERIOD_Y true
+#define PERIOD_Z false
 
 extern double L_X;
 extern double L_Y;
@@ -32,13 +32,13 @@ extern int BZ;
 
 inline double u_analytical(double l_x, double l_y, double l_z, double x, double y, double z, double t)
 {
-	double a_t = PI * sqrt(1/(l_x*l_x) + 1/(l_y*l_y) + 4/(l_z*l_z));
-	return sin(PI*x/l_x) * sin(PI*y/l_y) * sin(2*PI*z/l_z) * cos(a_t*t);
+	double a_t = PI * sqrt(1/(l_x*l_x) + 4/(l_y*l_y) + 9/(l_z*l_z));
+	return sin(PI*x/l_x) * sin(2*PI*y/l_y) * sin(3*PI*z/l_z) * cos(a_t*t);
 }
 
 inline double phi(double l_x, double l_y, double l_z, double x, double y, double z)
 {
 	// In general:
 	// phi == u_analytical(l_x,l_y,l_z,x,y,z,0);
-	return sin(PI*x/l_x) * sin(PI*y/l_y) * sin(2*PI*z/l_z);
+	return sin(PI*x/l_x) * sin(2*PI*y/l_y) * sin(3*PI*z/l_z);
 }
