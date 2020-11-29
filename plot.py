@@ -73,7 +73,7 @@ tvs = df2[:,4].reshape((64,64))
 avs = df2[:,3].reshape((64,64))
 es = df2[:,5].reshape((64,64))
 
-plot(ys,zs,avs,3,3,1, f"Approfimated plot at x={max_x}")
+plot(ys,zs,avs,3,3,1, f"Approximated plot at x={max_x}")
 plot(ys,zs,tvs,3,3,2, f"True plot at x={max_x}")
 plot(ys,zs,es,3,3,3, f"Error plot at x={max_x}")
 
@@ -86,7 +86,7 @@ tvs = df2[:,4].reshape((64,64))
 avs = df2[:,3].reshape((64,64))
 es = df2[:,5].reshape((64,64))
 
-plot(xs,zs,avs,3,3,4, f"Approfimated plot at y={max_y}")
+plot(xs,zs,avs,3,3,4, f"Approximated plot at y={max_y}")
 plot(xs,zs,tvs,3,3,5, f"True plot at y={max_y}")
 plot(xs,zs,es,3,3,6, f"Error plot at y={max_y}")
 
@@ -98,7 +98,7 @@ tvs = df2[:,4].reshape((64,64))
 avs = df2[:,3].reshape((64,64))
 es = df2[:,5].reshape((64,64))
 
-plot(xs,ys,avs,3,3,7, f"Approfimated plot at z={max_z}")
+plot(xs,ys,avs,3,3,7, f"Approximated plot at z={max_z}")
 plot(xs,ys,tvs,3,3,8, f"True plot at z={max_z}")
 plot(xs,ys,es,3,3,9, f"Error plot at z={max_z}")
 
