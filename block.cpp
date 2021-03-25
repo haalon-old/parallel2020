@@ -2,8 +2,13 @@
 #include <math.h>
 #include <omp.h>
 #include "block.hpp"
-#include "comm.hpp"
 #include "problem.h"
+
+// defined in .cu
+void launch_calc(Block * b, int num);
+double launch_err(Block * b);
+void initDevice(Block * b);
+void freeDevice();
 
 char onConstEdge(int i, int j, int k) {
     if(!PERIOD_X && (i==0 || i==N))
@@ -26,6 +31,7 @@ Block::Block() {}
 
 Block::Block(int rank) {
     t = 0;
+
     int k = rank % BZ;
     int j = rank / BZ % BY;
     int i = rank / BZ / BY;
@@ -56,8 +62,8 @@ Block::Block(int rank) {
     // px = k + BZ*j + BZ*BY*mod(i+1, BX);
     // mx = k + BZ*j + BZ*BY*mod(i-1, BX);
 
-    prev = new double[nx*ny*nz];
-    curr = new double[nx*ny*nz];
+    // prev = new double[nx*ny*nz];
+    // curr = new double[nx*ny*nz];
     next = new double[nx*ny*nz];
 
     // sum of indexes of opposite sides is 5
@@ -76,15 +82,18 @@ Block::Block(int rank) {
     // printf("\tnx %d, ny %d nz %d\n", nx, ny, nz);
 
     // printf("\tx %d %d, y %d %d, z %d %d\n", mx, px, my, py, mz, pz);
+    initDevice(this);
 }
 
 Block::~Block() {
-    delete[] prev;
-    delete[] curr;
+    // delete[] prev;
+    // delete[] curr;
     delete[] next;
 
     for(int i=0; i<6; i++)
         delete[] edges[i];
+
+    freeDevice();
 }
 
 void Block::swap() {
@@ -151,12 +160,13 @@ void Block::prepare() {
 // }
 
 void Block::init0() {
-    #pragma omp parallel for
-    for(int i = sx; i <= ex; i++)
-        for(int j = sy; j <= ey;  j++)
-            for(int k = sz; k <= ez; k++)
-                get(next, i, j, k) = phi(L_X, L_Y, L_Z, H_X*i, H_Y*j, H_Z*k);
-    prepare();
+    launch_calc(this, 0);
+    // #pragma omp parallel for
+    // for(int i = sx; i <= ex; i++)
+    //     for(int j = sy; j <= ey;  j++)
+    //         for(int k = sz; k <= ez; k++)
+    //             get(next, i, j, k) = phi(L_X, L_Y, L_Z, H_X*i, H_Y*j, H_Z*k);
+    // prepare();
 }
 
 double Block::delta(int i, int j, int k, double* curr) {
@@ -170,52 +180,63 @@ double Block::delta(int i, int j, int k, double* curr) {
 }
 
 void Block::init1() {
-    swap();
-    // exchange(comm);
-    #pragma omp parallel for
-    for(int i = sx; i <= ex; i++)
-        for(int j = sy; j <= ey; j++)
-            for(int k = sz; k <= ez; k++) {
-                if(onConstEdge(i,j,k))
-                    get(next, i, j, k) = 0;
-                else
-                    get(next, i, j, k) = get(curr, i, j, k) + delta(i,j,k,curr)/2;
-            }
+    // swap();
+    launch_calc(this, 1);
+    // #pragma omp parallel for
+    // for(int i = sx; i <= ex; i++)
+    //     for(int j = sy; j <= ey; j++)
+    //         for(int k = sz; k <= ez; k++) {
+    //             if(onConstEdge(i,j,k))
+    //                 get(next, i, j, k) = 0;
+    //             else
+    //                 get(next, i, j, k) = get(curr, i, j, k) + delta(i,j,k,curr)/2;
+    //         }
     t++;
-    prepare();
+    // prepare();
 }
 
 void Block::calcNext() {
-    swap();
-    // exchange(comm);
-    #pragma omp parallel for
-    for(int i = sx; i <= ex; i++)
-        for(int j = sy; j <= ey; j++)
-            for(int k = sz; k <= ez; k++) {
-                if(onConstEdge(i,j,k))
-                    get(next, i, j, k) = 0;
-                else
-                    get(next, i, j, k) = get(curr, i, j, k) + (delta(i,j,k,curr) + get(curr, i, j, k) - get(prev, i, j, k));
+    // swap();
+    // printf("edges 0 h |");
+    //     for (int ii = 0; ii < ny*nz ; ++ii)
+    //         printf(" %f", edges[0][ii]);
+    //     printf("\n");
+    //     printf("edges 2 h |");
+    //     for (int ii = 0; ii < ny*nx; ++ii)
+    //         printf(" %f", edges[2][ii]);
+    //     printf("\n");    
+    launch_calc(this, 42);
 
-            }
+        
+    // #pragma omp parallel for
+    // for(int i = sx; i <= ex; i++)
+    //     for(int j = sy; j <= ey; j++)
+    //         for(int k = sz; k <= ez; k++) {
+    //             if(onConstEdge(i,j,k))
+    //                 get(next, i, j, k) = 0;
+    //             else
+    //                 get(next, i, j, k) = get(curr, i, j, k) + (delta(i,j,k,curr) + get(curr, i, j, k) - get(prev, i, j, k));
+
+    //         }
     t++;
-    prepare();
+    // prepare();
 }
 
 double Block::get_error()
 {
-    double max_err=0, temp;
+    // double max_err=0, temp;
 
-    for(int i = sx; i <= ex; ++i)
-        for (int j = sy; j <= ey; ++j)
-            for (int k = sz; k <= ez; ++k)
-            {
-                temp = std::abs(u_analytical(L_X,L_Y,L_Z, H_X*i, H_Y*j, H_Z*k, t*TAU) - get(next, i, j, k));
-                if(temp > max_err)
-                    max_err = temp;
-            }
+    // for(int i = sx; i <= ex; ++i)
+    //     for (int j = sy; j <= ey; ++j)
+    //         for (int k = sz; k <= ez; ++k)
+    //         {
+    //             temp = std::abs(u_analytical(L_X,L_Y,L_Z, H_X*i, H_Y*j, H_Z*k, t*TAU) - get(next, i, j, k));
+    //             if(temp > max_err)
+    //                 max_err = temp;
+    //         }
 
-    return max_err;
+    // return max_err;
+    return launch_err(this);
 }
 
 void Block::print_layer()

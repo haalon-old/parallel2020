@@ -101,6 +101,7 @@ void parseArgs(int argc, char *argv[]) {
             c[i] = new Comm(i, BX*BY*BZ, b[i]);
 
             b[i]->init0();
+            // b[i]->print_layer();
             printf("\tBlock #%3d: %.17f\n", i, b[i]->get_error());
         }
         sync(b,c);
@@ -109,6 +110,7 @@ void parseArgs(int argc, char *argv[]) {
         printf("Error #%3d\n", 1);
         for(int i = 0; i<BX*BY*BZ; i++) {
             b[i]->init1();
+            // b[i]->print_layer();
             printf("\tBlock #%3d: %.17f\n", i, b[i]->get_error());
 
         }
@@ -120,11 +122,13 @@ void parseArgs(int argc, char *argv[]) {
             printf("Error #%3d\n", t);
             for(int i = 0; i<BX*BY*BZ; i++) {
                 b[i]->calcNext();
+                // b[i]->print_layer();
                 printf("\tBlock #%3d: %.17f\n", i, b[i]->get_error());
             }
             sync(b,c);
             printf("\n");
         }
+
         printf("%f s elapsed\n", (omp_get_wtime() - start));
     }
 #else
@@ -164,17 +168,20 @@ void parseArgs(int argc, char *argv[]) {
         if(!rank)
             printf("Error #%3d\n", 0);
         b.init0();
+        // b.print_layer();
         sync(&b, &c);
 
         if(!rank)
-            printf("Error #%3d\n", 0);
+            printf("Error #%3d\n", 1);
         b.init1();
+        // b.print_layer();
         sync(&b, &c);
 
         for(int t=2; t<=K; t++) {
             if(!rank)
                 printf("Error #%3d\n", t);
             b.calcNext();
+            // b.print_layer();
             sync(&b, &c);
         }
         if(!rank)
